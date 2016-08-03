@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import utils.UriUtils;
 import zoo.Server;
+import zoo.ZooServer;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -23,7 +24,7 @@ public class ConnectionToClusterController {
     private static Properties errorsProps;
     private static Properties messagesProps;
 
-    private Server server;
+    private ZooServer server;
 
     static {
         try {

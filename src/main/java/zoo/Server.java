@@ -3,7 +3,6 @@ package zoo;
 import exception.ZooException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.data.Stat;
@@ -17,7 +16,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
-public class Server implements Watcher {
+public class Server implements ZooServer {
 
     private static final int SESSION_TIMEOUT = 7000;
     private static Properties properties;
@@ -43,7 +42,6 @@ public class Server implements Watcher {
         this.member = "server." + serverId + "=" + hostPort;
     }
 
-    @Override
     public void process(WatchedEvent watchedEvent) {
         if (watchedEvent.getState() == Event.KeeperState.SyncConnected) {
             connectedSignal.countDown();
