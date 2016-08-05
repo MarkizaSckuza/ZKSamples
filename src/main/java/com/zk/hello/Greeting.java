@@ -1,4 +1,4 @@
-package hello;
+package com.zk.hello;
 
 public class Greeting {
 

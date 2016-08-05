@@ -1,4 +1,4 @@
-package utils;
+package com.zk.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,7 +17,7 @@ public class ClusterInfoUtils {
         String result;
 
         try {
-            URI uri = UriUtils.createUri(hostPort);
+            URI uri = PathUtils.createUri(hostPort);
             socket = new Socket(uri.getHost(), uri.getPort());
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));

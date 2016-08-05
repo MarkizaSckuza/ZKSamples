@@ -1,2 +1,2 @@
-Main-Class: controller.Application
+Main-Class: com.zk.Application
 

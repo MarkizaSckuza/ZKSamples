@@ -1,6 +1,6 @@
-package zoo;
+package com.zk.zoo;
 
-import exception.ZooException;
+import com.zk.exception.ZooException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooKeeper;
@@ -9,22 +9,18 @@ import org.apache.zookeeper.data.Stat;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
-import utils.ClusterInfoUtils;
+import com.zk.utils.ClusterInfoUtils;
 
 import java.io.IOException;
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
-public class Server implements ZooServer {
+public class ZooClientImpl implements ZooClient {
 
-    private static final int SESSION_TIMEOUT = 7000;
+    private static final int SESSION_TIMEOUT = 50000;
     private static Properties properties;
     private ZooKeeper zk;
     private String hostPort;
-    private String member;
-    private String serverId;
-    private boolean isConnected;
     private CountDownLatch connectedSignal = new CountDownLatch(1);
 
     static {
@@ -36,10 +32,8 @@ public class Server implements ZooServer {
         }
     }
 
-    public Server(String hostPort) {
+    public ZooClientImpl(String hostPort) {
         this.hostPort = hostPort;
-        this.serverId = Integer.toHexString(new Random().nextInt());
-        this.member = "server." + serverId + "=" + hostPort;
     }
 
     public void process(WatchedEvent watchedEvent) {
@@ -64,51 +58,42 @@ public class Server implements ZooServer {
         if (zk != null && (zk.getState() == States.CONNECTING || zk.getState() == States.CONNECTED))
             try {
                 zk.close();
-                return "DISCONNECTED_FROM_ZOOKEEPER";
+                return properties.getProperty("DISCONNECTED_FROM_ZOOKEEPER");
             } catch (InterruptedException e) {
                 throw new ZooException(1001);
             }
         else
-            return properties.getProperty("SERVER_NOT_CONNECTED");
+            return properties.getProperty("CLIENT_NOT_CONNECTED");
     }
 
-    public String connectToCluster() throws ZooException {
-        if (zk == null || zk.getState() == States.CLOSED || zk.getState() == States.NOT_CONNECTED) {
-            connectToZooKeeper();
-        }
+    public String connectToCluster(String connectionString) throws ZooException {
         try {
-            zk.reconfig(null, null, member, -1, new Stat());
+            zk.reconfig(null, null, connectionString, -1, new Stat());
         } catch (KeeperException e) {
             throw new ZooException(e.code().intValue());
         } catch (InterruptedException e) {
             throw new ZooException(1001);
         }
-        isConnected = true;
         return properties.getProperty("CONNECTED_TO_CLUSTER");
     }
 
-    public String disconnectFromCluster() throws ZooException {
-        if (zk != null && isConnected) {
+    public String disconnectFromCluster(Integer serverId, String connectionString) throws ZooException {
+        if (zk != null) {
             try {
-                zk.reconfig(null, serverId, null, -1, new Stat());
+                zk.reconfig(null, String.valueOf(serverId), connectionString, -1, new Stat());
             } catch (KeeperException e) {
                 throw new ZooException(e.code().intValue());
             } catch (InterruptedException e) {
                 throw new ZooException(1001);
             }
-            isConnected = false;
             return properties.getProperty("DISCONNECTED_FROM_CLUSTER");
         } else
             return properties.getProperty("SERVER_NOT_CONNECTED_TO_CLUSTER");
     }
 
-    public String getClusterInfo() {
-        String info = ClusterInfoUtils.getInfo(hostPort);
+    public String getClusterInfo(String path) {
+        String info = ClusterInfoUtils.getInfo(path);
         return info != null ? info : properties.getProperty("CANNOT_GET_CLUSTER_INFO");
-    }
-
-    public boolean isConnected() {
-        return isConnected;
     }
 
     public ZooKeeper.States getState() {

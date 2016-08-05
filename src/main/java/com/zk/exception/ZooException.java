@@ -1,4 +1,4 @@
-package exception;
+package com.zk.exception;
 
 public class ZooException extends Exception {
 
