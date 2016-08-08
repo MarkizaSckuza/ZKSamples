@@ -9,6 +9,6 @@ public interface ZooClient extends Watcher {
     String disconnectFromZooKeeper() throws ZooException;
     String connectToCluster(String connectionString) throws ZooException;
     String disconnectFromCluster(Integer serverId, String connectionString) throws ZooException;
-    String getClusterInfo(String path);
+    String getClusterInfo(String host, int port);
     States getState();
 }

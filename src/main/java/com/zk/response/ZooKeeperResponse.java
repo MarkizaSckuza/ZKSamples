@@ -1,6 +1,6 @@
-package com.zk.hello;
+package com.zk.response;
 
-public class ZooKeeperResponse {
+public class ZooKeeperResponse implements Response {
 
     private final String message;
 

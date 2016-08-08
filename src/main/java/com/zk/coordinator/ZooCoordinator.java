@@ -1,25 +1,31 @@
-package com.zk.zoo;
+package com.zk.coordinator;
 
 import com.zk.exception.ZooException;
-import com.zk.hello.ZooKeeperResponse;
+import com.zk.response.ZooKeeperResponse;
+import com.zk.zoo.ZooClient;
+import com.zk.zoo.impl.ZooClientImpl;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.zookeeper.ZooKeeper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.stereotype.Component;
-import com.zk.utils.PathUtils;
+import com.zk.utils.ZooUtils;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
+import static java.util.Objects.isNull;
 import static org.apache.zookeeper.ZooKeeper.States.CONNECTED;
 import static org.apache.zookeeper.ZooKeeper.States.CONNECTING;
 
 @Component
-public class ZooControllerImpl implements ZooController {
+@Qualifier("zoo")
+public class ZooCoordinator implements Coordinator {
 
     private static Properties messagesProps;
 
@@ -35,19 +41,20 @@ public class ZooControllerImpl implements ZooController {
         }
     }
 
-    public ZooControllerImpl() {
+    @PostConstruct
+    public void init() {
         connectedServerIds = new HashSet<>();
     }
 
     @Override
-    public ZooKeeperResponse connectToZooKeeper(String host, String port) throws ZooException {
+    public ZooKeeperResponse connectToClient(String host, String port) throws ZooException {
         if (zooClient != null && (zooClient.getState() == CONNECTED || zooClient.getState() == CONNECTING)) {
             return new ZooKeeperResponse(messagesProps.getProperty("CLIENT_CONNECTED"));
         }
 
         String hostPort = host + ":" + port;
 
-        if (!PathUtils.isHostPortValid(hostPort)) {
+        if (!ZooUtils.isHostPortValid(hostPort)) {
             return new ZooKeeperResponse(messagesProps.getProperty("WRONG_HOST_PORT"));
         }
         return zooClient == null
@@ -56,7 +63,7 @@ public class ZooControllerImpl implements ZooController {
     }
 
     @Override
-    public ZooKeeperResponse disconnectFromZooKeeper() throws ZooException {
+    public ZooKeeperResponse disconnectFromClient() throws ZooException {
         if (zooClient == null || zooClient.getState() == ZooKeeper.States.CLOSED || zooClient.getState() == ZooKeeper.States.NOT_CONNECTED) {
             return new ZooKeeperResponse(messagesProps.getProperty("CLIENT_NOT_CONNECTED"));
         }
@@ -74,17 +81,13 @@ public class ZooControllerImpl implements ZooController {
         if (!NumberUtils.isNumber(serverId) || !NumberUtils.isNumber(leaderPort) || !NumberUtils.isNumber(leaderElectionPort) || !NumberUtils.isNumber(clientPort)) {
             return new ZooKeeperResponse(messagesProps.getProperty("WRONG_CONN_STR"));
         }
-        if (!PathUtils.isValidConnectionParameters(host, Integer.valueOf(leaderPort), Integer.valueOf(leaderElectionPort), Integer.valueOf(clientPort))) {
+        if (!ZooUtils.isValidConnectionParameters(host, Integer.valueOf(leaderPort), Integer.valueOf(leaderElectionPort), Integer.valueOf(clientPort))) {
             return new ZooKeeperResponse(messagesProps.getProperty("WRONG_CONN_STR"));
         }
 
         ZooKeeperResponse response;
-        try {
-            response = new ZooKeeperResponse(zooClient.connectToCluster(PathUtils.makeConnectionString(serverId, host, leaderPort, leaderElectionPort, clientPort)));
-            connectedServerIds.add(serverId);
-        } catch (ZooException e) {
-            throw e;
-        }
+        response = new ZooKeeperResponse(zooClient.connectToCluster(ZooUtils.makeConnectionString(serverId, host, leaderPort, leaderElectionPort, clientPort)));
+        connectedServerIds.add(serverId);
 
         return response;
     }
@@ -97,38 +100,30 @@ public class ZooControllerImpl implements ZooController {
         if (!NumberUtils.isNumber(serverId)) {
             return new ZooKeeperResponse(messagesProps.getProperty("WRONG_CONN_STR"));
         }
-        if (!PathUtils.isNull(newServerId) && !PathUtils.isNull(host) && !PathUtils.isNull(leaderPort) && !PathUtils.isNull(leaderElectionPort) && !PathUtils.isNull(clientPort)
-                && !PathUtils.isValidConnectionParameters(host, Integer.valueOf(leaderPort), Integer.valueOf(leaderElectionPort), Integer.valueOf(clientPort))) {
+        if (!isNull(newServerId) && !isNull(host) && !isNull(leaderPort) && !isNull(leaderElectionPort) && !isNull(clientPort)
+                && !ZooUtils.isValidConnectionParameters(host, Integer.valueOf(leaderPort), Integer.valueOf(leaderElectionPort), Integer.valueOf(clientPort))) {
             return new ZooKeeperResponse(messagesProps.getProperty("WRONG_CONN_STR"));
         }
 
         ZooKeeperResponse response;
-        try {
-            String s = zooClient.disconnectFromCluster(Integer.valueOf(serverId), PathUtils.makeConnectionString(newServerId, host, leaderPort, leaderElectionPort, clientPort));
-            response = new ZooKeeperResponse(s);
-            connectedServerIds.remove(serverId);
-            if (newServerId != null) connectedServerIds.add(newServerId);
-        } catch (ZooException e) {
-            throw e;
-        }
+        String s = zooClient.disconnectFromCluster(Integer.valueOf(serverId), ZooUtils.makeConnectionString(newServerId, host, leaderPort, leaderElectionPort, clientPort));
+        response = new ZooKeeperResponse(s);
+        connectedServerIds.remove(serverId);
+        if (newServerId != null) connectedServerIds.add(newServerId);
         return response;
     }
 
     @Override
     public ZooKeeperResponse getInfo(String host, String port) {
         String hostPort = host + ":" + port;
-        if (!PathUtils.isHostPortValid(hostPort)) {
+        if (!ZooUtils.isHostPortValid(hostPort)) {
             return new ZooKeeperResponse(messagesProps.getProperty("WRONG_HOST_PORT"));
         }
-        return new ZooKeeperResponse(getClusterInfo(hostPort));
+        return new ZooKeeperResponse(zooClient.getClusterInfo(host, Integer.valueOf(port)));
     }
 
     private String createAndConnectToZooKeeper(String hostPort) throws ZooException {
         zooClient = new ZooClientImpl(hostPort);
         return zooClient.connectToZooKeeper();
-    }
-
-    private String getClusterInfo(String path) {
-        return zooClient.getClusterInfo(path);
     }
 }

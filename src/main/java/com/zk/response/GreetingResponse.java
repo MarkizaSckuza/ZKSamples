@@ -1,11 +1,11 @@
-package com.zk.hello;
+package com.zk.response;
 
-public class Greeting {
+public class GreetingResponse implements Response {
 
     private final long id;
     private final String content;
 
-    public Greeting(long id, String content) {
+    public GreetingResponse(long id, String content) {
         this.id = id;
         this.content = content;
     }

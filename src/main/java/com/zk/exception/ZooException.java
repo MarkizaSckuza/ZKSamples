@@ -1,14 +1,9 @@
 package com.zk.exception;
 
-public class ZooException extends Exception {
-
-    private int code;
+public class ZooException extends AppException {
 
     public ZooException(int code) {
-        if (code < 0) {
-            code *= -1;
-        }
-        this.code = code;
+        super(code);
     }
 
     public ZooException(String message) {
@@ -25,9 +20,5 @@ public class ZooException extends Exception {
 
     protected ZooException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
-    }
-
-    public int getCode() {
-        return code;
     }
 }

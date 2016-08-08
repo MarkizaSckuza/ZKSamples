@@ -1,6 +1,8 @@
-package com.zk.zoo;
+package com.zk.zoo.impl;
 
 import com.zk.exception.ZooException;
+import com.zk.utils.ZooUtils;
+import com.zk.zoo.ZooClient;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooKeeper;
@@ -9,7 +11,6 @@ import org.apache.zookeeper.data.Stat;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
-import com.zk.utils.ClusterInfoUtils;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -91,8 +92,8 @@ public class ZooClientImpl implements ZooClient {
             return properties.getProperty("SERVER_NOT_CONNECTED_TO_CLUSTER");
     }
 
-    public String getClusterInfo(String path) {
-        String info = ClusterInfoUtils.getInfo(path);
+    public String getClusterInfo(String host, int port) {
+        String info = ZooUtils.getInfo(host, port);
         return info != null ? info : properties.getProperty("CANNOT_GET_CLUSTER_INFO");
     }
 
