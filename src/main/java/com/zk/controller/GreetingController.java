@@ -1,21 +1,31 @@
 package com.zk.controller;
 
-import com.zk.response.GreetingResponse;
+import com.zk.coordinator.Coordinator;
+import com.zk.exception.AppException;
+import com.zk.response.ErrorMessage;
+import com.zk.response.Response;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 public class GreetingController {
 
-    private static final String template = "Hello, %s!";
-    private final AtomicLong counter = new AtomicLong();
+    @Autowired
+    private Environment env;
 
-    @RequestMapping("/greeting")
-    public GreetingResponse greeting(@RequestParam(value="name", defaultValue="World") String name) {
-        return new GreetingResponse(counter.incrementAndGet(),
-                String.format(template, name));
+    @Autowired
+    private Coordinator coordinator;
+
+    @RequestMapping("/hello")
+    public Response greeting() throws AppException {
+        return coordinator.greeting();
+    }
+
+    @ExceptionHandler(AppException.class)
+    public ErrorMessage myError(AppException exception) {
+        return new ErrorMessage(env.getProperty(String.valueOf(exception.getCode())));
     }
 }
